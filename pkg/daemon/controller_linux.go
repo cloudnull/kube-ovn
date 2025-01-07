@@ -245,6 +245,48 @@ func (c *Controller) reconcileRouters(event *subnetEvent) error {
 				}
 			}
 		}
+
+		if subnet.Spec.IsMetalLBAddressPool && subnet.Spec.Vlan != "" {
+			// vips, err := c.virtualIpsLister.List(labels.Everything())
+			// if err != nil {
+			// 	klog.Errorf("failed to list vips %v", err)
+			// 	return err
+			// }
+
+			// lrpMAC := subnet.Status.U2OInterconnectionMAC
+
+			// // 获取localnet port的id
+
+			// for _, vip := range vips {
+			// 	if vip.Spec.Subnet == subnet.Name {
+			// 		vipNameParts := strings.Split(vip.Name, ".")
+			// 		if len(vipNameParts) != 2 {
+			// 			klog.Errorf("invalid vip name format: %s", vip.Name)
+			// 			continue
+			// 		}
+			// 		svcName := vipNameParts[0]
+			// 		svcNamespace := vipNameParts[1]
+
+			// 		svc, err := c.servicesLister.Services(svcNamespace).Get(svcName)
+			// 		if err != nil {
+			// 			if k8serrors.IsNotFound(err) {
+			// 				klog.Errorf("service %s/%s not found", svcNamespace, svcName)
+			// 				continue
+			// 			}
+			// 			klog.Errorf("failed to get service %s/%s: %v", svcNamespace, svcName, err)
+			// 			return err
+			// 		}
+
+			// 		lbServiceIP := svc.Spec.ClusterIP
+			// 		lbServicePort := svc.Spec.Ports[0].Port
+			// 		flow := fmt.Sprintf("priority=100,ip,nw_dst=%s,tcp,tp_dst=%d,actions=mod_dl_dst:%s,output:%s", lbServiceIP, lbServicePort, lrpMAC, localnetPort)
+			// 		cmd := exec.Command("ovs-ofctl", "add-flow", "br-provider", flow)
+			// 		if output, err := cmd.CombinedOutput(); err != nil {
+			// 			klog.Errorf("failed to add flow %q: %v", output, err)
+			// 		}
+			// 	}
+			// }
+		}
 	}
 
 	gateway, ok := node.Annotations[util.GatewayAnnotation]

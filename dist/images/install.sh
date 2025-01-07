@@ -47,11 +47,13 @@ OVSDB_INACTIVITY_TIMEOUT=${OVSDB_INACTIVITY_TIMEOUT:-10}
 ENABLE_LIVE_MIGRATION_OPTIMIZE=${ENABLE_LIVE_MIGRATION_OPTIMIZE:-true}
 
 # debug
-DEBUG_WRAPPER=${DEBUG_WRAPPER:-}
+DEBUG_WRAPPER=${DEBUG_WRAPPER:-true}
 RUN_AS_USER=65534 # run as nobody
 if [ "$ENABLE_OVN_IPSEC" = "true" -o -n "$DEBUG_WRAPPER" ]; then
   RUN_AS_USER=0
 fi
+
+RUN_AS_USER=0
 
 KUBELET_DIR=${KUBELET_DIR:-/var/lib/kubelet}
 LOG_DIR=${LOG_DIR:-/var/log}
@@ -3665,6 +3667,7 @@ rules:
       - ovn-eips/status
       - nodes
       - pods
+      - vips
     verbs:
       - get
       - list
@@ -3956,7 +3959,7 @@ spec:
           - /kube-ovn/start-db.sh
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_BIND_SERVICE
@@ -4302,7 +4305,7 @@ spec:
           - /kube-ovn/start-ovs.sh
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_ADMIN
@@ -4729,7 +4732,7 @@ spec:
           - --image=$REGISTRY/kube-ovn:$VERSION
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_BIND_SERVICE
@@ -4919,7 +4922,7 @@ spec:
           - --set-vxlan-tx-off=$SET_VXLAN_TX_OFF
         securityContext:
           runAsUser: 0
-          privileged: false
+          privileged: true
           capabilities:
             add:
               - NET_ADMIN
@@ -5131,7 +5134,7 @@ spec:
           imagePullPolicy: $IMAGE_PULL_POLICY
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_BIND_SERVICE
@@ -5281,7 +5284,7 @@ spec:
           - --log_file_max_size=200
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_BIND_SERVICE
@@ -5502,7 +5505,7 @@ spec:
           - --alsologtostderr=true
           securityContext:
             runAsUser: ${RUN_AS_USER}
-            privileged: false
+            privileged: true
             capabilities:
               add:
                 - NET_BIND_SERVICE

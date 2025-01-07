@@ -1511,6 +1511,20 @@ func (mr *MockLoadBalancerMockRecorder) SetLoadBalancerAffinityTimeout(lbName, t
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerAffinityTimeout", reflect.TypeOf((*MockLoadBalancer)(nil).SetLoadBalancerAffinityTimeout), lbName, timeout)
 }
 
+// SetLoadBalancerPreferLocalBackend mocks base method.
+func (m *MockLoadBalancer) SetLoadBalancerPreferLocalBackend(lbName string, prefer_local_backend bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLoadBalancerPreferLocalBackend", lbName, prefer_local_backend)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLoadBalancerPreferLocalBackend indicates an expected call of SetLoadBalancerPreferLocalBackend.
+func (mr *MockLoadBalancerMockRecorder) SetLoadBalancerPreferLocalBackend(lbName, prefer_local_backend any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPreferLocalBackend", reflect.TypeOf((*MockLoadBalancer)(nil).SetLoadBalancerPreferLocalBackend), lbName, prefer_local_backend)
+}
+
 // MockLoadBalancerHealthCheck is a mock of LoadBalancerHealthCheck interface.
 type MockLoadBalancerHealthCheck struct {
 	ctrl     *gomock.Controller
@@ -4542,6 +4556,20 @@ func (m *MockNbClient) SetLoadBalancerAffinityTimeout(lbName string, timeout int
 func (mr *MockNbClientMockRecorder) SetLoadBalancerAffinityTimeout(lbName, timeout any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerAffinityTimeout", reflect.TypeOf((*MockNbClient)(nil).SetLoadBalancerAffinityTimeout), lbName, timeout)
+}
+
+// SetLoadBalancerPreferLocalBackend mocks base method.
+func (m *MockNbClient) SetLoadBalancerPreferLocalBackend(lbName string, prefer_local_backend bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLoadBalancerPreferLocalBackend", lbName, prefer_local_backend)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLoadBalancerPreferLocalBackend indicates an expected call of SetLoadBalancerPreferLocalBackend.
+func (mr *MockNbClientMockRecorder) SetLoadBalancerPreferLocalBackend(lbName, prefer_local_backend any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLoadBalancerPreferLocalBackend", reflect.TypeOf((*MockNbClient)(nil).SetLoadBalancerPreferLocalBackend), lbName, prefer_local_backend)
 }
 
 // SetLogicalRouterPortHAChassisGroup mocks base method.

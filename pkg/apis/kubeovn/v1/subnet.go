@@ -85,6 +85,7 @@ type SubnetSpec struct {
 	EnableLb             *bool  `json:"enableLb,omitempty"`
 	EnableEcmp           bool   `json:"enableEcmp,omitempty"`
 	EnableMulticastSnoop bool   `json:"enableMulticastSnoop,omitempty"`
+	IsMetalLBAddressPool bool   `json:"metallbAddressPool,omitempty"`
 
 	RouteTable         string                 `json:"routeTable,omitempty"`
 	NamespaceSelectors []metav1.LabelSelector `json:"namespaceSelectors,omitempty"`

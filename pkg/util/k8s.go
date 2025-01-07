@@ -127,6 +127,24 @@ func ServiceClusterIPs(svc v1.Service) []string {
 	return ips
 }
 
+func GetLoadBalancerIP(svc v1.Service) string {
+	if svc.Spec.Type != v1.ServiceTypeLoadBalancer {
+		return ""
+	}
+
+	if len(svc.Status.LoadBalancer.Ingress) == 0 {
+		return ""
+	}
+
+	for _, ingress := range svc.Status.LoadBalancer.Ingress {
+		if ingress.IP != "" {
+			return ingress.IP
+		}
+	}
+
+	return ""
+}
+
 func LabelSelectorNotEquals(key, value string) (labels.Selector, error) {
 	requirement, err := labels.NewRequirement(key, selection.NotEquals, []string{value})
 	if err != nil {

@@ -681,6 +681,11 @@ func (c *Controller) handleAddOrUpdateSubnet(key string) error {
 
 	needRouter := subnet.Spec.Vlan == "" || subnet.Spec.LogicalGateway ||
 		(subnet.Status.U2OInterconnectionIP != "" && subnet.Spec.U2OInterconnection)
+
+	if subnet.Spec.Vlan != "" && subnet.Spec.IsMetalLBAddressPool {
+		needRouter = true
+	}
+
 	// 1. overlay subnet, should add lrp, lrp ip is subnet gw
 	// 2. underlay subnet use logical gw, should add lrp, lrp ip is subnet gw
 	randomAllocateGW := !subnet.Spec.LogicalGateway && vpc.Spec.EnableExternal && subnet.Name == c.config.ExternalGatewaySwitch
@@ -1852,8 +1857,11 @@ func (c *Controller) reconcileSubnetSpecialIPs(subnet *kubeovnv1.Subnet) (bool, 
 	if subnet.Spec.Vlan != "" && !subnet.Spec.LogicalGateway {
 		u2oInterconnName := fmt.Sprintf(util.U2OInterconnName, subnet.Spec.Vpc, subnet.Name)
 		u2oInterconnLrpName := fmt.Sprintf("%s-%s", subnet.Spec.Vpc, subnet.Name)
+
+		needAllocateU2OIP := false
+		needAllocateU2OIP = subnet.Spec.U2OInterconnection || subnet.Spec.IsMetalLBAddressPool
 		var v4ip, v6ip string
-		if subnet.Spec.U2OInterconnection {
+		if needAllocateU2OIP {
 			v4ip, v6ip, _, err = c.acquireU2OIP(subnet, u2oInterconnName, u2oInterconnLrpName)
 			if err != nil {
 				return isU2OIPChanged, isMcastQuerierIPChanged, err
@@ -1862,7 +1870,7 @@ func (c *Controller) reconcileSubnetSpecialIPs(subnet *kubeovnv1.Subnet) (bool, 
 			if v4ip != "" || v6ip != "" {
 				isU2OIPChanged = true
 			}
-		} else if subnet.Status.U2OInterconnectionIP != "" {
+		} else if !needAllocateU2OIP && subnet.Status.U2OInterconnectionIP != "" {
 			err = c.releaseU2OIP(subnet, u2oInterconnName)
 			if err != nil {
 				return isU2OIPChanged, isMcastQuerierIPChanged, err

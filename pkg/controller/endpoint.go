@@ -75,6 +75,7 @@ func (c *Controller) handleUpdateEndpoint(key string) error {
 		vip, vpcName, subnetName string
 		ok                       bool
 		ignoreHealthCheck        = true
+		isPreferLocalBackend     = false
 	)
 
 	if vip, ok = svc.Annotations[util.SwitchLBRuleVipsAnnotation]; ok {
@@ -93,6 +94,20 @@ func (c *Controller) handleUpdateEndpoint(key string) error {
 		return nil
 	}
 
+	// 注意这些东西只有在ovn lb开关打开的时候才能用
+	if svc.Spec.Type == v1.ServiceTypeLoadBalancer && svc.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
+		if externalIP := util.GetLoadBalancerIP(*svc); err == nil && externalIP != "" {
+			lbVips = append(lbVips, externalIP)
+		} else if err != nil {
+			klog.Errorf("failed to get external load balancer IP for service %s/%s: %v", namespace, name, err)
+			return err
+		}
+		isPreferLocalBackend = true
+	} else if svc.Spec.Type == v1.ServiceTypeClusterIP && svc.Spec.InternalTrafficPolicy != nil && *svc.Spec.InternalTrafficPolicy == v1.ServiceInternalTrafficPolicyLocal {
+		isPreferLocalBackend = true
+	}
+
+	klog.Errorf("clyi lbVips %v", lbVips)
 	if pods, err = c.podsLister.Pods(namespace).List(labels.Set(svc.Spec.Selector).AsSelector()); err != nil {
 		klog.Errorf("failed to get pods for service %s in namespace %s: %v", name, namespace, err)
 		return err
@@ -157,19 +172,40 @@ func (c *Controller) handleUpdateEndpoint(key string) error {
 				backends                 []string
 				ipPortMapping, externals map[string]string
 			)
-
-			if !ignoreHealthCheck {
+			isGenIPPortMapping := !ignoreHealthCheck || isPreferLocalBackend
+			if isGenIPPortMapping {
 				if checkIP, err = c.getHealthCheckVip(subnetName, lbVip); err != nil {
 					klog.Error(err)
 					return err
 				}
+
+				subnet, err := c.subnetsLister.Get(subnetName)
+				if err != nil {
+					klog.Errorf("failed to get subnet %s: %v", subnetName, err)
+					return err
+				}
+
+				if subnet.Spec.IsMetalLBAddressPool {
+					vipName := fmt.Sprintf("%s.%s", svc.Name, svc.Namespace)
+					vip := &kubeovnv1.Vip{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: vipName,
+						},
+						Spec: kubeovnv1.VipSpec{
+							Subnet: subnetName,
+						},
+					}
+					if _, err = c.config.KubeOvnClient.KubeovnV1().Vips().Create(context.Background(), vip, metav1.CreateOptions{}); err != nil {
+						klog.Errorf("failed to create vip %s, %v", vipName, err)
+						return err
+					}
+				}
+
 				externals = map[string]string{
 					util.SwitchLBRuleSubnet: subnetName,
 				}
 			}
-
-			ipPortMapping, backends = getIPPortMappingBackend(ep, pods, port, lbVip, checkIP, ignoreHealthCheck)
-
+			ipPortMapping, backends = getIPPortMappingBackend(ep, pods, port, lbVip, checkIP, isGenIPPortMapping)
 			// for performance reason delete lb with no backends
 			if len(backends) != 0 {
 				vip = util.JoinHostPort(lbVip, port.Port)
@@ -178,6 +214,14 @@ func (c *Controller) handleUpdateEndpoint(key string) error {
 					klog.Errorf("failed to add vip %s with backends %s to LB %s: %v", lbVip, backends, lb, err)
 					return err
 				}
+
+				if isPreferLocalBackend {
+					if err = c.OVNNbClient.LoadBalancerUpdateIPPortMapping(lb, vip, ipPortMapping); err != nil {
+						klog.Errorf("failed to update ip port mapping %s for vip %s to LB %s: %v", ipPortMapping, vip, lb, err)
+						return err
+					}
+				}
+
 				if !ignoreHealthCheck && len(ipPortMapping) != 0 {
 					klog.Infof("add health check ip port mapping %v to LB %s", ipPortMapping, lb)
 					if err = c.OVNNbClient.LoadBalancerAddHealthCheck(lb, vip, ignoreHealthCheck, ipPortMapping, externals); err != nil {
@@ -321,7 +365,7 @@ func (c *Controller) getHealthCheckVip(subnetName, lbVip string) (string, error)
 	return checkIP, nil
 }
 
-func getIPPortMappingBackend(endpoints *v1.Endpoints, pods []*v1.Pod, servicePort v1.ServicePort, serviceIP, checkVip string, ignoreHealthCheck bool) (map[string]string, []string) {
+func getIPPortMappingBackend(endpoints *v1.Endpoints, pods []*v1.Pod, servicePort v1.ServicePort, serviceIP, checkVip string, isGenIPPortMapping bool) (map[string]string, []string) {
 	var (
 		ipPortMapping = map[string]string{}
 		backends      = []string{}
@@ -341,7 +385,7 @@ func getIPPortMappingBackend(endpoints *v1.Endpoints, pods []*v1.Pod, servicePor
 		}
 
 		for _, address := range subset.Addresses {
-			if !ignoreHealthCheck && address.TargetRef.Name != "" {
+			if isGenIPPortMapping && address.TargetRef.Name != "" {
 				ipName := fmt.Sprintf("%s.%s", address.TargetRef.Name, endpoints.Namespace)
 				ipPortMapping[address.IP] = fmt.Sprintf(util.HealthCheckNamedVipTemplate, ipName, checkVip)
 			}

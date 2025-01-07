@@ -65,7 +65,9 @@ RUN cd /usr/src/ && git clone -b branch-24.03 --depth=1 https://github.com/ovn-o
     # support dedicated BFD LRP
     curl -s https://github.com/kubeovn/ovn/commit/40345aa35d03c93cde877ccfa8111346291ebc7c.patch | git apply && \
     # skip node local dns ip conntrack when set acl
-    curl -s https://github.com/kubeovn/ovn/commit/e7d3ba53cdcbc524bb29c54ddb07b83cc4258ed7.patch | git apply
+    curl -s https://github.com/kubeovn/ovn/commit/e7d3ba53cdcbc524bb29c54ddb07b83cc4258ed7.patch | git apply && \
+    # select local backend first
+    curl -s https://github.com/kubeovn/ovn/commit/e5a123631df32895f6a1fd3796d073f3afe03d44.patch | git apply
 
 RUN apt install -y build-essential fakeroot \
     autoconf automake bzip2 debhelper-compat dh-exec dh-python dh-sequence-python3 dh-sequence-sphinxdoc \

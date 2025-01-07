@@ -165,8 +165,10 @@ func ValidateSubnet(subnet kubeovnv1.Subnet) error {
 		}
 	}
 
-	if subnet.Spec.LogicalGateway && subnet.Spec.U2OInterconnection {
-		return errors.New("logicalGateway and u2oInterconnection can't be opened at the same time")
+	if (subnet.Spec.LogicalGateway && subnet.Spec.U2OInterconnection) ||
+		(subnet.Spec.LogicalGateway && subnet.Spec.IsMetalLBAddressPool) ||
+		(subnet.Spec.U2OInterconnection && subnet.Spec.IsMetalLBAddressPool) {
+		return errors.New("logicalGateway, u2oInterconnection, and isMetalLBAddressPool can't be opened at the same time")
 	}
 
 	if len(subnet.Spec.NatOutgoingPolicyRules) != 0 {
